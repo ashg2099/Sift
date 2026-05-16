@@ -1,0 +1,51 @@
+# LLM orchestration
+langchain
+langchain-community
+langchain-groq
+langchain-huggingface
+langchain-postgres
+langgraph
+langsmith
+
+# Data indexing
+llama-index
+llama-index-vector-stores-postgres
+
+# LLM providers
+groq
+google-generativeai
+
+# Models
+huggingface-hub
+transformers
+sentence-transformers
+
+# Database
+psycopg2-binary
+pgvector
+sqlalchemy
+redis
+
+# Async task queue
+celery
+
+# API
+fastapi
+uvicorn[standard]
+pydantic
+python-dotenv
+httpx
+
+# Eval
+ragas
+deepeval
+
+# Observability
+prometheus-client
+
+# UI
+streamlit
+
+# Data
+datasets
+requests
