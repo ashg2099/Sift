@@ -1,0 +1,226 @@
+{
+  "accuracy": {
+    "overall_accuracy": 1.0,
+    "correct": 1,
+    "total": 1,
+    "avg_confidence": 0.9,
+    "avg_latency_s": 10.56,
+    "per_label": {
+      "TRUE": {
+        "accuracy": 1.0,
+        "correct": 1,
+        "total": 1
+      }
+    }
+  },
+  "ragas": {
+    "faithfulness_proxy": 1.0,
+    "grounded": 1,
+    "total": 1
+  },
+  "per_claim": [
+    {
+      "claim": "The US GDP grew 3.2% in Q2 2024.",
+      "ground_truth": "TRUE",
+      "original_label": "TRUE",
+      "predicted": "TRUE",
+      "confidence": 0.9,
+      "reasoning": "The claim is directly supported by evidence [3] from the Bureau of Economic Analysis. While other evidence provides context about the US economy, they do not directly contradict the claim. However, the confidence score should be lowered due to the limited number of direct supporting sources.",
+      "supporting_evidence": [
+        "US GDP grew 3.2% in Q2 2024 according to the Bureau of Economic Analysis.",
+        "economists had been expecting the growth rate to slow to 3.2% from an annualized rate of 3.8% in the second quarter"
+      ],
+      "elapsed_s": 10.56
+    },
+    {
+      "claim": "The unemployment rate fell to 3.7% in October 2024.",
+      "ground_truth": "TRUE",
+      "original_label": "TRUE",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99872, Requested 488. Please try again in 5m11.039999999s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.19
+    },
+    {
+      "claim": "OpenAI released GPT-4 in March 2023.",
+      "ground_truth": "TRUE",
+      "original_label": "TRUE",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99869, Requested 537. Please try again in 5m50.784s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.13
+    },
+    {
+      "claim": "Global temperatures in 2023 were approximately 1.45\u00b0C above pre-industrial levels.",
+      "ground_truth": "TRUE",
+      "original_label": "TRUE",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99867, Requested 543. Please try again in 5m54.24s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.09
+    },
+    {
+      "claim": "Nvidia's market capitalisation exceeded $3 trillion in 2024.",
+      "ground_truth": "TRUE",
+      "original_label": "TRUE",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99865, Requested 487. Please try again in 5m4.128s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.09
+    },
+    {
+      "claim": "The Federal Reserve raised interest rates multiple times in 2022 and 2023.",
+      "ground_truth": "TRUE",
+      "original_label": "TRUE",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99862, Requested 489. Please try again in 5m3.264s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.14
+    },
+    {
+      "claim": "Inflation in the United States peaked above 9% in 2022.",
+      "ground_truth": "TRUE",
+      "original_label": "TRUE",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99860, Requested 529. Please try again in 5m36.096s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.09
+    },
+    {
+      "claim": "The US GDP shrank by 5% in Q2 2024.",
+      "ground_truth": "FALSE",
+      "original_label": "FALSE",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99857, Requested 529. Please try again in 5m33.504s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.06
+    },
+    {
+      "claim": "OpenAI was founded in 2010.",
+      "ground_truth": "FALSE",
+      "original_label": "FALSE",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99855, Requested 522. Please try again in 5m25.728s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.09
+    },
+    {
+      "claim": "The unemployment rate rose to 8% in 2024.",
+      "ground_truth": "FALSE",
+      "original_label": "FALSE",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99852, Requested 485. Please try again in 4m51.168s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.1
+    },
+    {
+      "claim": "The Eiffel Tower is located in Berlin, Germany.",
+      "ground_truth": "FALSE",
+      "original_label": "FALSE",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99850, Requested 525. Please try again in 5m24s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.09
+    },
+    {
+      "claim": "Nvidia's stock price fell 80% in 2024.",
+      "ground_truth": "FALSE",
+      "original_label": "FALSE",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99848, Requested 486. Please try again in 4m48.576s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.09
+    },
+    {
+      "claim": "The Federal Reserve cut interest rates to zero in 2024.",
+      "ground_truth": "FALSE",
+      "original_label": "FALSE",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99845, Requested 537. Please try again in 5m30.048s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.1
+    },
+    {
+      "claim": "Global CO2 levels decreased significantly in 2023.",
+      "ground_truth": "FALSE",
+      "original_label": "FALSE",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99843, Requested 535. Please try again in 5m26.592s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.09
+    },
+    {
+      "claim": "The US economy will enter a recession in 2025.",
+      "ground_truth": "UNCERTAIN",
+      "original_label": "UNCERTAIN",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99840, Requested 484. Please try again in 4m39.936s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.09
+    },
+    {
+      "claim": "AI will replace 50% of all jobs within the next five years.",
+      "ground_truth": "UNCERTAIN",
+      "original_label": "UNCERTAIN",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99838, Requested 487. Please try again in 4m40.8s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.17
+    },
+    {
+      "claim": "The Federal Reserve kept interest rates at exactly 5.25% throughout 2024.",
+      "ground_truth": "UNCERTAIN",
+      "original_label": "UNCERTAIN",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99835, Requested 490. Please try again in 4m40.8s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.06
+    },
+    {
+      "claim": "Climate change will cause sea levels to rise by 2 metres by 2100.",
+      "ground_truth": "UNCERTAIN",
+      "original_label": "UNCERTAIN",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99833, Requested 541. Please try again in 5m23.135999999s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.06
+    },
+    {
+      "claim": "The 2024 US election was decided by fewer than 100,000 votes.",
+      "ground_truth": "UNCERTAIN",
+      "original_label": "UNCERTAIN",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99831, Requested 489. Please try again in 4m36.48s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.07
+    },
+    {
+      "claim": "Renewable energy will account for more than 50% of US power by 2030.",
+      "ground_truth": "UNCERTAIN",
+      "original_label": "UNCERTAIN",
+      "predicted": "ERROR",
+      "confidence": 0.0,
+      "reasoning": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kh0gx487esdvm10j7fm88yx1` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99828, Requested 544. Please try again in 5m21.408s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "supporting_evidence": [],
+      "elapsed_s": 0.1
+    }
+  ]
+}
