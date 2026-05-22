@@ -5,7 +5,6 @@ langchain-groq
 langchain-huggingface
 langchain-postgres
 langgraph
-langsmith
 
 # Data indexing
 llama-index
@@ -42,6 +41,7 @@ deepeval
 
 # Observability
 prometheus-client
+langfuse
 
 # UI
 streamlit

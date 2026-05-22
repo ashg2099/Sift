@@ -26,16 +26,20 @@ def test_redis():
     r.set("test", "REDIS OK")
     print("✓ Redis:", r.get("test").decode())
 
-def test_langsmith():
-    os.environ["LANGCHAIN_TRACING_V2"] = "true"
-    from langchain_groq import ChatGroq
-    llm = ChatGroq(model="llama-3.3-70b-versatile", max_tokens=10)
-    r = llm.invoke("Say: LANGSMITH OK")
-    print("✓ LangSmith trace sent. Check smith.langchain.com")
+def test_langfuse():
+    from langfuse import Langfuse
+    client = Langfuse(
+        public_key=os.environ["LANGFUSE_PUBLIC_KEY"],
+        secret_key=os.environ["LANGFUSE_SECRET_KEY"],
+        host=os.environ.get("LANGFUSE_HOST", "https://cloud.langfuse.com"),
+    )
+    result = client.auth_check()
+    assert result, "LangFuse auth failed — check your keys"
+    print("✓ LangFuse: connected. Check cloud.langfuse.com")
 
 if __name__ == "__main__":
     test_postgres()
     test_redis()
     test_groq()
-    test_langsmith()
+    test_langfuse()
     print("\nAll connections working!")

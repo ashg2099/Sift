@@ -9,6 +9,21 @@ from agents.synthesis import synthesize_verdict, Verdict
 from agents.critic import critique_verdict, Critique
 from agents.corrector import correct_claim, Correction
 
+import os
+
+# ── LangFuse Tracing ──────────────────────────────────
+def _get_langfuse_handler():
+    """Create a fresh LangFuse handler per pipeline run. Reads keys from env vars."""
+    try:
+        from langfuse.langchain import CallbackHandler as LangfuseCallback
+        if os.environ.get("LANGFUSE_PUBLIC_KEY") and os.environ.get("LANGFUSE_SECRET_KEY"):
+            handler = LangfuseCallback()   # v3: reads LANGFUSE_* env vars automatically
+            print("[Sift] LangFuse tracing enabled")
+            return handler
+    except Exception as e:
+        print(f"[Sift] LangFuse not available: {e}")
+    return None
+
 # ── Shared State ──────────────────────────────────────
 # This is the "memory" passed between every agent
 class SiftState(TypedDict):
@@ -183,6 +198,8 @@ def run_sift(text: str) -> List[dict]:
     print(f"Input: {text[:80]}...")
     print(f"{'='*60}")
 
+    langfuse_handler = _get_langfuse_handler()
+
     initial_state = SiftState(
         original_text=text,
         claims=[],
@@ -195,7 +212,17 @@ def run_sift(text: str) -> List[dict]:
         final_reports=[]
     )
 
-    final_state = pipeline.invoke(initial_state)
+    try:
+        config = {"callbacks": [langfuse_handler]} if langfuse_handler else {}
+        final_state = pipeline.invoke(initial_state, config=config)
+    finally:
+        # Always flush — captures partial traces even on rate limit errors
+        if langfuse_handler:
+            try:
+                langfuse_handler.flush()
+                print("[Sift] LangFuse traces flushed")
+            except Exception:
+                pass
 
     print(f"\n{'='*60}")
     print(f"SIFT PIPELINE COMPLETE")
