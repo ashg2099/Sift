@@ -568,7 +568,7 @@ footer{
 <!-- ABOUT -->
 <section id="about">
   <div class="section-chip">Architecture</div>
-  <h2 class="section-title">Four agents. One truth.</h2>
+  <h2 class="section-title">Five agents. One truth.</h2>
   <p class="section-sub">
     A LangGraph state machine orchestrates four specialised AI agents in sequence —
     each one building on the last to produce grounded, adversarially-reviewed verdicts.
@@ -598,6 +598,12 @@ footer{
       <div class="agent-icon">⚔</div>
       <div class="agent-name">Critic Agent</div>
       <div class="agent-desc">Adversarial review. Flags overconfidence, unsupported claims, and alternative interpretations.</div>
+    </div>
+    <div class="agent-card">
+      <div class="agent-num">AGENT 05</div>
+      <div class="agent-icon">✦</div>
+      <div class="agent-name">Correction Agent</div>
+      <div class="agent-desc">Fires on FALSE / UNCERTAIN verdicts. Searches for what is actually true and surfaces the correct information with sources.</div>
     </div>
   </div>
 
@@ -686,10 +692,19 @@ footer{
         </div>
         <div class="vpp-agent">
           <div class="vpp-node">⚔</div>
-          <div class="vpp-info" style="padding-bottom:0">
+          <div class="vpp-info">
             <div class="vpp-agent-name">Critic Agent</div>
             <div class="vpp-agent-desc">Adversarial review — flags overconfidence and adjusts score</div>
             <span class="vpp-tag">Adversarial</span>
+          </div>
+          <div class="vpp-connector"></div>
+        </div>
+        <div class="vpp-agent">
+          <div class="vpp-node">✦</div>
+          <div class="vpp-info" style="padding-bottom:0">
+            <div class="vpp-agent-name">Correction Agent</div>
+            <div class="vpp-agent-desc">On FALSE / UNCERTAIN — finds what is actually true with live sources</div>
+            <span class="vpp-tag" style="background:rgba(255,170,0,0.08);border-color:rgba(255,170,0,0.3);color:var(--amber)">Conditional</span>
           </div>
         </div>
       </div>
@@ -722,6 +737,10 @@ footer{
       <div class="p-step" id="step-critic">
         <div class="p-dot">⚔</div>
         <div class="p-name">Critic</div>
+      </div>
+      <div class="p-step" id="step-correct">
+        <div class="p-dot">✦</div>
+        <div class="p-name">Corrector</div>
       </div>
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
@@ -917,7 +936,7 @@ function sourceCard(url){
 
 /* ── Pipeline animation ───────────────────────────────────── */
 let elapsedTimer,elapsedSec=0;
-const STEPS=['extract','evidence','synthesis','critic'];
+const STEPS=['extract','evidence','synthesis','critic','correct'];
 function setStep(i){
   STEPS.forEach((s,idx)=>{
     const el=document.getElementById(`step-${s}`);
@@ -937,9 +956,10 @@ function startElapsed(){
     if(elapsedSec<5)setStep(0);
     else if(elapsedSec<15)setStep(1);
     else if(elapsedSec<25)setStep(2);
-    else setStep(3);
-    const msgs=['Extracting claims from text…','Hunting evidence with HyDE…','Synthesising verdict from evidence…','Critic reviewing for overconfidence…'];
-    const idx=elapsedSec<5?0:elapsedSec<15?1:elapsedSec<25?2:3;
+    else if(elapsedSec<38)setStep(3);
+    else setStep(4);
+    const msgs=['Extracting claims from text…','Hunting evidence with HyDE…','Synthesising verdict from evidence…','Critic reviewing for overconfidence…','Correction agent searching for what is true…'];
+    const idx=elapsedSec<5?0:elapsedSec<15?1:elapsedSec<25?2:elapsedSec<38?3:4;
     document.getElementById('pipeline-msg').textContent=msgs[idx];
   },1000);
 }
