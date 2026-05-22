@@ -69,24 +69,115 @@ def fetch_guardian(topic: str, pages: int = 2) -> list[Document]:
                             page_content=chunk,
                             metadata={"source": url, "headline": headline, "provider": "guardian"}
                         ))
-            time.sleep(0.5)  # be polite to the API
+            time.sleep(0.5)
         except Exception as e:
             print(f"  Guardian error for '{topic}' page {page}: {e}")
     return docs
 
 
+# =================== NewsAPI ===================
+NEWSAPI_KEY = os.environ.get("NEWSAPI_KEY", "")
+NEWSAPI_URL = "https://newsapi.org/v2/everything"
+
+# Topics intentionally different from Guardian to avoid overlap
+NEWSAPI_TOPICS = [
+    "OpenAI ChatGPT artificial intelligence",
+    "Elon Musk Tesla SpaceX",
+    "Ukraine Russia war",
+    "China economy trade tariffs",
+    "cryptocurrency Bitcoin Ethereum",
+    "US housing market mortgage rates",
+    "renewable energy solar wind power",
+    "US healthcare Medicare Medicaid",
+    "immigration border policy",
+    "COVID pandemic health WHO",
+    "Nvidia GPU semiconductor",
+    "Amazon Apple Microsoft earnings",
+]
+
+def fetch_newsapi(topic: str, page_size: int = 20) -> list[Document]:
+    """
+    Fetch articles from NewsAPI for a topic.
+    Note: free tier truncates article content to ~200 chars,
+    so we combine title + description + content for richer chunks.
+    """
+    docs = []
+    if not NEWSAPI_KEY:
+        print("  ⚠ NEWSAPI_KEY not set — skipping NewsAPI ingestion")
+        return docs
+
+    params = {
+        "q": topic,
+        "apiKey": NEWSAPI_KEY,
+        "language": "en",
+        "sortBy": "relevancy",
+        "pageSize": page_size,
+    }
+    try:
+        r = requests.get(NEWSAPI_URL, params=params, timeout=10)
+        r.raise_for_status()
+        articles = r.json().get("articles", [])
+        for article in articles:
+            title       = article.get("title", "") or ""
+            description = article.get("description", "") or ""
+            content     = article.get("content", "") or ""
+            url         = article.get("url", "")
+            source_name = article.get("source", {}).get("name", "newsapi")
+
+            # Combine all available text (content is truncated ~200 chars on free tier)
+            full_text = " ".join(filter(None, [title, description, content])).strip()
+            if len(full_text) < 60:
+                continue
+
+            chunks = splitter.split_text(full_text)
+            for chunk in chunks:
+                docs.append(Document(
+                    page_content=chunk,
+                    metadata={
+                        "source": url,
+                        "headline": title,
+                        "provider": "newsapi",
+                        "source_name": source_name,
+                    }
+                ))
+        time.sleep(0.3)
+    except Exception as e:
+        print(f"  NewsAPI error for '{topic}': {e}")
+    return docs
+
+
 # =================== Wikipedia ===================
 WIKI_TOPICS = [
+    # Economics
     "United States GDP",
     "Federal Reserve",
     "Unemployment in the United States",
     "2024 United States presidential election",
-    "Climate change",
     "Inflation",
-    "Artificial intelligence",
+    "United States housing bubble",
+    # Climate
+    "Climate change",
+    "Global warming",
+    "Arctic sea ice decline",
+    # AI & Big Tech
+    "GPT-4",
+    "ChatGPT",
     "OpenAI",
     "Nvidia",
+    "Nvidia market capitalization",
+    "Artificial intelligence",
+    "Apple Inc.",
+    "Microsoft",
+    "Amazon (company)",
+    # Geopolitics
     "Ukraine war",
+    "Russo-Ukrainian War",
+    # Finance & Crypto
+    "Bitcoin",
+    "Cryptocurrency",
+    # Other
+    "SpaceX",
+    "COVID-19 pandemic",
 ]
 
 def fetch_wikipedia(topic: str) -> list[Document]:
@@ -100,7 +191,6 @@ def fetch_wikipedia(topic: str) -> list[Document]:
                 metadata={"source": page.url, "headline": topic, "provider": "wikipedia"}
             ))
     except wikipedia.exceptions.DisambiguationError as e:
-        # Take the first option if ambiguous
         try:
             page = wikipedia.page(e.options[0], auto_suggest=False)
             chunks = splitter.split_text(page.content)
@@ -127,6 +217,16 @@ def ingest_all():
         print(f"     {len(docs)} chunks")
         all_docs.extend(docs)
 
+    if NEWSAPI_KEY:
+        print("\n🗞  Fetching from NewsAPI...")
+        for topic in NEWSAPI_TOPICS:
+            print(f"  → {topic}")
+            docs = fetch_newsapi(topic, page_size=20)
+            print(f"     {len(docs)} chunks")
+            all_docs.extend(docs)
+    else:
+        print("\n⚠  NEWSAPI_KEY not set — skipping NewsAPI (add it to .env to include)")
+
     print("\n📖 Fetching from Wikipedia...")
     for topic in WIKI_TOPICS:
         print(f"  → {topic}")
@@ -137,7 +237,6 @@ def ingest_all():
     print(f"\n✅ Total chunks to embed: {len(all_docs)}")
     print("⏳ Embedding and storing in pgvector (this takes a few minutes)...")
 
-    # Store in batches of 50 to avoid memory spikes
     batch_size = 50
     for i in range(0, len(all_docs), batch_size):
         batch = all_docs[i:i + batch_size]

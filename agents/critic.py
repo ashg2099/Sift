@@ -3,7 +3,7 @@ load_dotenv()
 
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from typing import List, Literal
 from agents.synthesis import Verdict, synthesize_verdict
 from agents.evidence_hunter import Evidence, hunt_evidence
@@ -17,6 +17,21 @@ class Critique(BaseModel):
     issues_found: List[str]      # problems with the original verdict
     revised_reasoning: str       # updated explanation after critique
 
+    # Guard against LLaMA returning strings instead of proper types
+    @validator("final_confidence", pre=True)
+    def coerce_confidence(cls, v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return 0.5
+
+    @validator("confidence_changed", pre=True)
+    def coerce_bool(cls, v):
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, str):
+            return v.lower() not in ("false", "0", "no", "")
+
 # ── Setup ─────────────────────────────────────────────
 llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0)
 structured_llm = llm.with_structured_output(Critique)
@@ -24,20 +39,34 @@ structured_llm = llm.with_structured_output(Critique)
 # ── Prompt ────────────────────────────────────────────
 prompt = ChatPromptTemplate.from_messages([
     ("system", """You are an adversarial reviewer of fact-check verdicts.
-Your job is to challenge the verdict and find any weaknesses.
+Your job is to find GENUINE weaknesses — not manufacture criticism where none exists.
 
 Ask yourself:
-1. Is every part of the verdict actually supported by the evidence?
-2. Is the confidence score too high given the evidence quality?
-3. Are there alternative interpretations the evidence allows?
-4. Is anything stated in the reasoning NOT present in the evidence?
+1. Is the decision (TRUE/FALSE/UNCERTAIN) actually correct given the evidence?
+2. Is the confidence score reasonable? Only flag it if it is seriously miscalibrated
+   (e.g. 95% confidence on a single weak source is too high — but 85% on 5 strong
+   sources is fine, do NOT flag it).
+3. Does the reasoning contain any claims NOT present in the evidence?
+4. Is there important contradicting evidence that was ignored?
 
 Rules:
-- If the verdict is well-supported, keep it but confirm it
-- If confidence is too high for thin evidence, lower it
-- If reasoning contains unsupported claims, flag them
-- If verdict should change based on your review, change it
-- Be strict — overconfidence is worse than underconfidence"""),
+- If the verdict and confidence are well-supported → issues_found must be EMPTY []
+- Only add an issue if it is a real, specific problem — not a generic comment
+- NEVER add issues like "confidence score too high" unless confidence is genuinely
+  unjustified (e.g. above 80% with only 1 weak source)
+- NEVER add issues like "overconfidence in evidence quality" as a blanket statement
+- A TRUE verdict with strong multi-source evidence deserves 0 issues
+- Only lower confidence if the evidence genuinely does not support the current score
+- Quality over quantity — 0 real issues is better than 3 invented ones
+
+CRITICAL — How to write revised_reasoning:
+Write like a sourced news article. Name the specific organisations, publications,
+or official bodies inline.
+Good: "According to the BEA's final revised data, US GDP grew 3.0% in Q2 2024,
+       not 3.2%. Reuters and The Guardian reported the same figure."
+Bad:  "The evidence shows this claim is false." (too vague — name the source)
+
+Never write "sources indicate" or "evidence suggests" — always say WHO."""),
 
     ("human", """Original claim: {claim}
 
@@ -51,7 +80,9 @@ Original verdict:
 - Supporting sources: {supporting}
 - Contradicting sources: {contradicting}
 
-Review this verdict critically and return your assessment.""")
+Review this verdict. Only add issues if they are real and specific.
+If the verdict is solid, return issues_found as an empty list.
+In revised_reasoning, cite source names inline.""")
 ])
 
 chain = prompt | structured_llm

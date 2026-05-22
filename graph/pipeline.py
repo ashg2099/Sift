@@ -7,6 +7,7 @@ from agents.claim_extractor import extract_claims, Claim
 from agents.evidence_hunter import hunt_evidence, Evidence
 from agents.synthesis import synthesize_verdict, Verdict
 from agents.critic import critique_verdict, Critique
+from agents.corrector import correct_claim, Correction
 
 # ── Shared State ──────────────────────────────────────
 # This is the "memory" passed between every agent
@@ -76,6 +77,23 @@ def critic_node(state: SiftState) -> SiftState:
     # Save this claim's final report
     idx = state["current_claim_index"]
     verdict = Verdict(**state["verdict"])
+
+    # ── Run Correction Agent for UNCERTAIN / FALSE verdicts ───────
+    correction_data = None
+    if critique.final_decision in ("UNCERTAIN", "FALSE"):
+        correction = correct_claim(
+            claim=state["claims"][idx]["text"],
+            verdict=critique.final_decision,
+        )
+        if correction and correction.has_correction:
+            correction_data = {
+                "correct_info": correction.correct_info,
+                "original_misattribution": correction.original_misattribution,
+                "explanation": correction.explanation,
+                "source_url": correction.source_url,
+                "source_name": correction.source_name,
+            }
+
     report = {
         "claim": state["claims"][idx]["text"],
         "decision": critique.final_decision,
@@ -85,6 +103,7 @@ def critic_node(state: SiftState) -> SiftState:
         "supporting_evidence": verdict.supporting_evidence,
         "contradicting_evidence": verdict.contradicting_evidence,
         "retrieval_attempts": state.get("retrieval_attempts", 1),
+        "correction": correction_data,
     }
 
     updated_reports = state["final_reports"] + [report]

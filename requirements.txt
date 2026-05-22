@@ -49,3 +49,6 @@ streamlit
 # Data
 datasets
 requests
+
+# Search
+tavily-python

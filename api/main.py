@@ -2,10 +2,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from api.tasks import verify_text_task, celery_app
 from prometheus_client import Counter, Histogram, make_asgi_app
 import uuid
+import os
 
 # ── Prometheus Metrics ────────────────────────────────
 claims_total = Counter(
@@ -26,6 +29,10 @@ app = FastAPI(title="Sift", version="1.0.0",
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
 
+# Mount static UI files
+ui_dir = os.path.join(os.path.dirname(__file__), "..", "ui")
+app.mount("/ui", StaticFiles(directory=ui_dir), name="ui")
+
 # ── Request/Response Models ───────────────────────────
 class VerifyRequest(BaseModel):
     text: str
@@ -41,6 +48,11 @@ class StatusResponse(BaseModel):
     result: dict | None = None
 
 # ── Endpoints ─────────────────────────────────────────
+@app.get("/")
+def serve_ui():
+    ui_path = os.path.join(os.path.dirname(__file__), "..", "ui", "index.html")
+    return FileResponse(ui_path)
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "Sift API"}
