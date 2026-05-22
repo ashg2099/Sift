@@ -341,6 +341,8 @@ textarea#claim-input::placeholder{color:var(--subtle)}
 .p-name{font-size:10px;color:var(--muted);text-align:center;letter-spacing:0.5px}
 .p-step.done .p-name{color:var(--green)}
 .p-step.active .p-name{color:var(--blue)}
+.p-step.error .p-dot{background:var(--red-bg);border-color:var(--red)}
+.p-step.error .p-name{color:var(--red)}
 .progress-bar{
   height:2px;background:var(--border);border-radius:2px;overflow:hidden;
 }
@@ -1083,8 +1085,9 @@ async function startVerification(){
   document.getElementById('pipeline-section').style.display='block';
   document.getElementById('results-section').style.display='none';
   document.getElementById('claims-container').innerHTML='';
-  STEPS.forEach(s=>document.getElementById(`step-${s}`).classList.remove('done','active'));
+  STEPS.forEach(s=>document.getElementById(`step-${s}`).classList.remove('done','active','error'));
   document.getElementById('progress-fill').style.width='0';
+  document.getElementById('progress-fill').style.background='';
   document.getElementById('pipeline-section').scrollIntoView({behavior:'smooth',block:'start'});
 
   let taskId,startTime=Date.now();
@@ -1122,7 +1125,31 @@ async function startVerification(){
         resetBtn();
       } else if(state==='FAILURE'||state==='failed'){
         clearInterval(poll);stopElapsed();
-        document.getElementById('pipeline-msg').textContent=`Pipeline error: ${sd.error||'unknown'}`;
+        const rawErr = sd.result?.error || sd.error || '';
+        // Human-readable message based on error type
+        let userMsg, userDetail;
+        if(rawErr.includes('429') || rawErr.includes('rate_limit_exceeded') || rawErr.includes('tokens per day')){
+          userMsg = '⏳ API rate limit reached';
+          userDetail = 'Groq\'s daily token limit has been hit. Please try again tomorrow, or wait a few minutes if this was a burst limit.';
+        } else if(rawErr.includes('503') || rawErr.includes('502') || rawErr.includes('Connection')){
+          userMsg = '🔌 Service temporarily unavailable';
+          userDetail = 'The AI service is unreachable right now. Please try again in a moment.';
+        } else if(rawErr.includes('timeout') || rawErr.includes('Timeout')){
+          userMsg = '⏱ Request timed out';
+          userDetail = 'The pipeline took too long. Try a shorter text or fewer claims.';
+        } else {
+          userMsg = '⚠ Something went wrong';
+          userDetail = rawErr.length > 0 ? rawErr.slice(0,120) : 'An unexpected error occurred. Please try again.';
+        }
+        // Mark the active step red, leave done steps green
+        STEPS.forEach(s=>{
+          const el=document.getElementById(`step-${s}`);
+          if(el.classList.contains('active')){el.classList.remove('active');el.classList.add('error');}
+        });
+        document.getElementById('progress-fill').style.background='var(--red)';
+        document.getElementById('pipeline-msg').innerHTML=
+          `<span style="color:var(--red)">${userMsg}</span> — <span style="color:var(--muted)">${userDetail}</span>
+           <button onclick="document.getElementById('verify-btn').click()" style="margin-left:14px;background:var(--red-bg);border:0.5px solid var(--red);color:var(--red);padding:4px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-family:var(--font)">↺ Retry</button>`;
         resetBtn();
       }
     } catch(e){console.warn('Poll error',e)}
