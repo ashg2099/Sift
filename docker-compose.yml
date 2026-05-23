@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: veridai123
       POSTGRES_DB: veridai
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -39,6 +39,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://veridai:veridai123@postgres:5432/veridai
       - REDIS_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,6 +56,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://veridai:veridai123@postgres:5432/veridai
       - REDIS_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
     depends_on:
       postgres:
         condition: service_healthy
