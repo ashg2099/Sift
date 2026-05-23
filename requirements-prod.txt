@@ -1,0 +1,48 @@
+# LLM orchestration
+langchain
+langchain-community
+langchain-groq
+langchain-huggingface
+langchain-postgres
+langgraph
+
+# Data indexing
+llama-index
+llama-index-vector-stores-postgres
+
+# LLM providers
+groq
+google-generativeai
+
+# Models — use HF Inference API in prod (no local torch/transformers)
+huggingface-hub
+
+# Database
+psycopg2-binary
+pgvector
+sqlalchemy
+redis
+
+# Async task queue
+celery
+
+# API
+fastapi
+uvicorn[standard]
+pydantic
+python-dotenv
+httpx
+
+# Observability
+prometheus-client
+langfuse
+
+# UI
+streamlit
+
+# Data
+datasets
+requests
+
+# Search
+tavily-python

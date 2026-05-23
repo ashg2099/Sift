@@ -5,7 +5,6 @@ import os
 import requests
 from langchain_groq import ChatGroq
 from langchain_core.documents import Document
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_postgres import PGVector
 from pydantic import BaseModel
 from typing import List
@@ -37,17 +36,41 @@ class EvidenceResult(BaseModel):
 #    Setup
 llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0)
 
-embedder = HuggingFaceEmbeddings(
-    model_name="BAAI/bge-m3",
-    model_kwargs={"device": "cpu"},
-    encode_kwargs={"normalize_embeddings": True}
-)
+# ── Embedder: HF Inference API in prod, local model in dev ───
+def _build_embedder():
+    hf_token = os.environ.get("HF_TOKEN", "")
+    try:
+        # Try HF Inference API first (lightweight — no torch needed)
+        from langchain_huggingface import HuggingFaceEndpointEmbeddings
+        embedder = HuggingFaceEndpointEmbeddings(
+            model="https://api-inference.huggingface.co/models/BAAI/bge-m3",
+            huggingfacehub_api_token=hf_token,
+        )
+        print("[Sift] Using HuggingFace Inference API for embeddings")
+        return embedder
+    except Exception:
+        pass
+    try:
+        # Fall back to local model (dev environment with torch installed)
+        from langchain_huggingface import HuggingFaceEmbeddings
+        embedder = HuggingFaceEmbeddings(
+            model_name="BAAI/bge-m3",
+            model_kwargs={"device": "cpu"},
+            encode_kwargs={"normalize_embeddings": True},
+        )
+        print("[Sift] Using local HuggingFace model for embeddings")
+        return embedder
+    except Exception as e:
+        print(f"[Sift] Embedder unavailable: {e} — pgvector disabled")
+        return None
+
+embedder = _build_embedder()
 
 vector_store = PGVector(
     embeddings=embedder,
     collection_name="veridai_evidence",
-    connection=os.environ["DATABASE_URL"],
-)
+    connection=os.environ.get("DATABASE_URL", ""),
+) if embedder else None
 
 #    HyDE Retrieval
 def generate_hypothetical_doc(claim: str) -> str:
@@ -59,6 +82,8 @@ Do not mention the claim directly."""
     return llm.invoke(prompt).content
 
 def retrieve_evidence(claim: str, k: int = 5, attempt: int = 1) -> List[Document]:
+    if vector_store is None:
+        return []
     if attempt == 1:
         hypothetical_doc = generate_hypothetical_doc(claim)
         print(f"  HyDE doc: {hypothetical_doc[:80]}...")
