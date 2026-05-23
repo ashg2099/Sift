@@ -2,7 +2,7 @@ services:
 
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: veridai-postgres
+    container_name: sift-postgres
     environment:
       POSTGRES_USER: veridai
       POSTGRES_PASSWORD: veridai123
@@ -19,7 +19,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: veridai-redis
+    container_name: sift-redis
     ports:
       - "6379:6379"
     healthcheck:
@@ -28,9 +28,43 @@ services:
       timeout: 3s
       retries: 5
 
+  api:
+    build: .
+    container_name: sift-api
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://veridai:veridai123@postgres:5432/veridai
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build: .
+    container_name: sift-worker
+    command: celery -A api.tasks worker --loglevel=info --concurrency=1 --pool=solo
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://veridai:veridai123@postgres:5432/veridai
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   prometheus:
     image: prom/prometheus:latest
-    container_name: veridai-prometheus
+    container_name: sift-prometheus
     ports:
       - "9090:9090"
     volumes:
@@ -38,7 +72,7 @@ services:
 
   grafana:
     image: grafana/grafana:latest
-    container_name: veridai-grafana
+    container_name: sift-grafana
     ports:
       - "3000:3000"
     environment:
