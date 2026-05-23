@@ -10,11 +10,12 @@ primary_region = "sjc"
 
 # ── HTTP service (web process only) ──────────────────
 [http_service]
-  internal_port    = 8000
-  force_https      = true
-  auto_stop_machines = true
+  internal_port       = 8000
+  force_https         = true
+  auto_stop_machines  = "stop"
   auto_start_machines = true
-  processes        = ["web"]
+  min_machines_running = 1
+  processes           = ["web"]
 
   [http_service.concurrency]
     type       = "connections"

@@ -821,7 +821,7 @@ const API = window.location.hostname === 'localhost' ? 'http://localhost:8000' :
 /* ── API health check ──────────────────────────────────────── */
 async function checkAPI(){
   try{
-    const r = await fetch(`${API}/health`,{signal:AbortSignal.timeout(3000)});
+    const r = await fetch(`${API}/health`,{signal:AbortSignal.timeout(8000)});
     if(r.ok){
       document.getElementById('api-dot').style.background='var(--green)';
       document.getElementById('api-label').style.color='var(--green)';
