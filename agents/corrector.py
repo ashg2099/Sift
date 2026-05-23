@@ -38,11 +38,15 @@ class Correction(BaseModel):
 
 # ── Setup ─────────────────────────────────────────────
 llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0)
-structured_llm = llm.with_structured_output(Correction)
+structured_llm = llm.with_structured_output(Correction, method="json_mode")
 
 # ── Prompt: evidence-based correction ─────────────────
 prompt = ChatPromptTemplate.from_messages([
-    ("system", """You are a fact-correction specialist. A claim has been marked as UNCERTAIN or FALSE.
+    ("system", """You are a fact-correction specialist. A claim has been marked as UNCERTAIN or FALSE. Return your response as a JSON object with these exact fields:
+{{"has_correction": true, "correct_info": "...", "original_misattribution": "...", "explanation": "...", "source_url": "...", "source_name": "..."}}
+
+Field names MUST be exactly: "has_correction", "correct_info", "original_misattribution", "explanation", "source_url", "source_name".
+
 Your job is to find and explain the CORRECT information.
 
 Given the claim and any fresh evidence retrieved, determine:
@@ -73,7 +77,10 @@ chain = prompt | structured_llm
 
 # ── Prompt: knowledge-based fallback ──────────────────
 knowledge_prompt = ChatPromptTemplate.from_messages([
-    ("system", """You are a fact-correction specialist. A claim has been marked as UNCERTAIN or FALSE.
+    ("system", """You are a fact-correction specialist. A claim has been marked as UNCERTAIN or FALSE. Return your response as a JSON object with these exact fields:
+{{"has_correction": true, "correct_info": "...", "original_misattribution": "...", "explanation": "...", "source_url": "...", "source_name": "..."}}
+
+Field names MUST be exactly: "has_correction", "correct_info", "original_misattribution", "explanation", "source_url", "source_name".
 
 Use your training knowledge to provide the most accurate correction you can.
 

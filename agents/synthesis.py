@@ -24,24 +24,51 @@ class Verdict(BaseModel):
         except (TypeError, ValueError):
             return 0.5
 
+    @validator("confidence", always=True)
+    def fix_zero_confidence(cls, v, values):
+        """
+        LLaMA sometimes outputs 0.0 for UNCERTAIN verdicts, which is wrong —
+        0.0 means "definitely false", not "I don't know".
+        UNCERTAIN with no evidence = 0.3, UNCERTAIN with some evidence = 0.4.
+        Only touch confidence if it's exactly 0.0 AND decision is UNCERTAIN.
+        TRUE/FALSE verdicts are never changed.
+        """
+        decision = values.get("decision", "")
+        if v == 0.0 and decision == "UNCERTAIN":
+            return 0.4
+        return v
+
 # ── Setup ─────────────────────────────────────────────
 llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0)
-structured_llm = llm.with_structured_output(Verdict)
+structured_llm = llm.with_structured_output(Verdict, method="json_mode")
 
 # ── Prompt ────────────────────────────────────────────
 prompt = ChatPromptTemplate.from_messages([
     ("system", """You are a professional fact-checker. Your job is to
-evaluate a claim against provided evidence and return a verdict.
+evaluate a claim against provided evidence and return a verdict as a JSON object with these exact fields:
+{{"claim": "...", "decision": "TRUE|FALSE|UNCERTAIN", "confidence": 0.0, "reasoning": "...", "supporting_evidence": [], "contradicting_evidence": []}}
+
+Field names MUST be exactly: "claim", "decision", "confidence", "reasoning", "supporting_evidence", "contradicting_evidence".
 
 Rules:
 - TRUE: evidence clearly supports the claim
-- FALSE: evidence clearly contradicts the claim
-- UNCERTAIN: evidence is missing, weak, or conflicting
+- FALSE: evidence clearly and directly contradicts the claim with a different fact
+- UNCERTAIN: evidence is missing, weak, conflicting, or the numbers are close enough to be within measurement uncertainty
 
-Be conservative — if evidence is thin, say UNCERTAIN.
+Important nuances:
+- Do NOT mark FALSE just because a number is slightly different (e.g. 1.1°C vs 1.19°C — that is rounding, not a false claim)
+- Do NOT mark FALSE if the claim is approximately correct or a reasonable approximation
+- Only mark FALSE if the claim is definitively wrong (e.g. wrong location, wrong person, clearly fabricated statistic)
+- When in doubt between FALSE and UNCERTAIN, choose UNCERTAIN
+
+Be conservative — if evidence is thin or the difference is minor, say UNCERTAIN.
 Never make up facts not present in the evidence.
-Confidence must reflect how strongly the evidence supports your decision.
-0.9+ means very strong evidence, 0.5 means borderline.
+Confidence must reflect how strongly the evidence supports your decision:
+- TRUE/FALSE with strong multi-source evidence: 0.80–0.95
+- TRUE/FALSE with weak or single-source evidence: 0.55–0.75
+- UNCERTAIN with some relevant evidence: 0.35–0.50
+- UNCERTAIN with no useful evidence: 0.25–0.35
+NEVER set confidence to 0.0 — that is not a valid output.
 
 CRITICAL — How to write the reasoning field:
 Write the reasoning like a journalist citing sources inline. Always name the
@@ -91,7 +118,7 @@ def synthesize_verdict(claim: str, evidence: List[Evidence]) -> Verdict:
         return Verdict(
             claim=claim,
             decision="UNCERTAIN",
-            confidence=0.0,
+            confidence=0.3,
             reasoning="No evidence was found in the knowledge base to verify this claim.",
             supporting_evidence=[],
             contradicting_evidence=[]

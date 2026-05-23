@@ -10,6 +10,25 @@ from agents.critic import critique_verdict, Critique
 from agents.corrector import correct_claim, Correction
 
 import os
+import json
+import hashlib
+import redis as redis_lib
+
+# ── Redis Cache ───────────────────────────────────────
+_redis = None
+
+def _get_redis():
+    global _redis
+    if _redis is None:
+        _redis = redis_lib.from_url(os.environ.get("REDIS_URL", "redis://localhost:6379/0"))
+    return _redis
+
+def _cache_key(text: str) -> str:
+    # Normalise: lowercase + strip punctuation for cache hits across minor variations
+    normalised = text.lower().strip().rstrip('.')
+    return f"sift:v1:{hashlib.md5(normalised.encode()).hexdigest()}"
+
+CACHE_TTL = 60 * 60 * 24 * 7   # 7 days
 
 # ── LangFuse Tracing ──────────────────────────────────
 def _get_langfuse_handler():
@@ -198,6 +217,16 @@ def run_sift(text: str) -> List[dict]:
     print(f"Input: {text[:80]}...")
     print(f"{'='*60}")
 
+    # ── Cache check ───────────────────────────────────────
+    key = _cache_key(text)
+    try:
+        cached = _get_redis().get(key)
+        if cached:
+            print(f"[Sift] Cache HIT — returning cached result (key: {key[:16]}...)")
+            return json.loads(cached)
+    except Exception as e:
+        print(f"[Sift] Cache read error (proceeding without cache): {e}")
+
     langfuse_handler = _get_langfuse_handler()
 
     initial_state = SiftState(
@@ -216,7 +245,6 @@ def run_sift(text: str) -> List[dict]:
         config = {"callbacks": [langfuse_handler]} if langfuse_handler else {}
         final_state = pipeline.invoke(initial_state, config=config)
     finally:
-        # Always flush — captures partial traces even on rate limit errors
         if langfuse_handler:
             try:
                 langfuse_handler.flush()
@@ -224,11 +252,20 @@ def run_sift(text: str) -> List[dict]:
             except Exception:
                 pass
 
+    reports = final_state["final_reports"]
+
+    # ── Cache store ───────────────────────────────────────
+    try:
+        _get_redis().setex(key, CACHE_TTL, json.dumps(reports))
+        print(f"[Sift] Result cached for 7 days (key: {key[:16]}...)")
+    except Exception as e:
+        print(f"[Sift] Cache write error: {e}")
+
     print(f"\n{'='*60}")
     print(f"SIFT PIPELINE COMPLETE")
     print(f"{'='*60}")
 
-    return final_state["final_reports"]
+    return reports
 
 # ── Test ──────────────────────────────────────────────
 if __name__ == "__main__":

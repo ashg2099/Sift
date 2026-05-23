@@ -23,10 +23,13 @@ class ClaimList(BaseModel):
     claims: List[Claim]
 
 llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0)
-structured_llm = llm.with_structured_output(ClaimList)
+structured_llm = llm.with_structured_output(ClaimList, method="json_mode")
 
 prompt = ChatPromptTemplate.from_messages([
-    ("system", """Extract every verifiable factual claim from the text.
+    ("system", """Extract every verifiable factual claim from the text. Return your response as a JSON object with this exact structure:
+{{"claims": [{{"text": "...", "claim_type": "statistical|causal|entity|temporal", "checkable": true}}]}}
+
+Field names MUST be exactly: "text", "claim_type", "checkable" — do not rename them.
 
 Rules:
 - Extract EACH distinct factual assertion as its own separate claim

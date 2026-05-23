@@ -34,15 +34,22 @@ class Critique(BaseModel):
 
 # ── Setup ─────────────────────────────────────────────
 llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0)
-structured_llm = llm.with_structured_output(Critique)
+structured_llm = llm.with_structured_output(Critique, method="json_mode")
 
 # ── Prompt ────────────────────────────────────────────
 prompt = ChatPromptTemplate.from_messages([
-    ("system", """You are an adversarial reviewer of fact-check verdicts.
+    ("system", """You are an adversarial reviewer of fact-check verdicts. Return your response as a JSON object with these exact fields:
+{{"original_decision": "...", "final_decision": "TRUE|FALSE|UNCERTAIN", "final_confidence": 0.0, "confidence_changed": false, "issues_found": [], "revised_reasoning": "..."}}
+
+Field names MUST be exactly: "original_decision", "final_decision", "final_confidence", "confidence_changed", "issues_found", "revised_reasoning".
+
 Your job is to find GENUINE weaknesses — not manufacture criticism where none exists.
 
 Ask yourself:
 1. Is the decision (TRUE/FALSE/UNCERTAIN) actually correct given the evidence?
+   - Watch for over-aggressive FALSE: if the claim is approximately correct or within
+     measurement/rounding range (e.g. 1.1°C vs 1.19°C), it should be UNCERTAIN not FALSE
+   - Only keep FALSE if the claim is definitively wrong with a clear contradicting fact
 2. Is the confidence score reasonable? Only flag it if it is seriously miscalibrated
    (e.g. 95% confidence on a single weak source is too high — but 85% on 5 strong
    sources is fine, do NOT flag it).

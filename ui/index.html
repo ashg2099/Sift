@@ -354,6 +354,33 @@ textarea#claim-input::placeholder{color:var(--subtle)}
 
 /* ── RESULTS ────────────────────────────────────────────────── */
 #results-section{display:none}
+
+/* ── HIGHLIGHT PANEL ────────────────────────────────────────── */
+.highlight-panel{
+  background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;
+  padding:20px 24px;margin-bottom:24px;
+}
+.highlight-label{
+  font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;
+  margin-bottom:14px;display:flex;align-items:center;gap:8px;
+}
+.highlight-label::after{flex:1;content:'';height:1px;background:var(--border)}
+.highlight-legend{display:flex;gap:16px;margin-bottom:14px}
+.hl-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.hl-legend-dot{width:8px;height:8px;border-radius:50%}
+.highlight-text{
+  font-size:14px;line-height:2;color:var(--text);
+  font-family:var(--font);white-space:pre-wrap;word-break:break-word;
+}
+.hl-claim{
+  border-radius:3px;padding:1px 3px;cursor:pointer;
+  border-bottom:2px solid transparent;transition:filter .15s;
+  position:relative;
+}
+.hl-claim:hover{filter:brightness(1.3)}
+.hl-claim-true{background:rgba(0,255,136,0.12);border-bottom-color:var(--green)}
+.hl-claim-false{background:rgba(255,51,102,0.12);border-bottom-color:var(--red)}
+.hl-claim-unc{background:rgba(255,170,0,0.12);border-bottom-color:var(--amber)}
 .results-header{
   display:flex;align-items:baseline;justify-content:space-between;
   margin-bottom:20px;
@@ -381,6 +408,8 @@ textarea#claim-input::placeholder{color:var(--subtle)}
 .claim-card.card-true{border-left:2px solid var(--green)}
 .claim-card.card-false{border-left:2px solid var(--red)}
 .claim-card.card-unc{border-left:2px solid var(--amber)}
+.claim-card.pulse{animation:cardpulse .7s ease}
+@keyframes cardpulse{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 3px rgba(124,140,248,0.4)}}
 .claim-top{display:flex;gap:20px;align-items:flex-start}
 .claim-gauge{flex-shrink:0}
 .claim-right{flex:1}
@@ -760,6 +789,15 @@ footer{
       <div class="sum-card sum-false"><div class="sum-num" id="sum-false">0</div><div class="sum-lbl">✗ FALSE</div></div>
       <div class="sum-card sum-unc"><div class="sum-num" id="sum-unc">0</div><div class="sum-lbl">? UNCERTAIN</div></div>
     </div>
+    <div id="highlight-panel" style="display:none" class="highlight-panel">
+      <div class="highlight-label">Text Analysis — click any highlight to jump to its result</div>
+      <div class="highlight-legend">
+        <div class="hl-legend-item"><div class="hl-legend-dot" style="background:var(--green)"></div>TRUE</div>
+        <div class="hl-legend-item"><div class="hl-legend-dot" style="background:var(--red)"></div>FALSE</div>
+        <div class="hl-legend-item"><div class="hl-legend-dot" style="background:var(--amber)"></div>UNCERTAIN</div>
+      </div>
+      <div class="highlight-text" id="highlight-text"></div>
+    </div>
     <div id="claims-container"></div>
   </div>
 </section>
@@ -936,6 +974,83 @@ function sourceCard(url){
   </a>`;
 }
 
+/* ── Claim Highlighting ───────────────────────────────────── */
+function escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function buildHighlightedText(originalText, reports){
+  if(!originalText||!reports.length) return null;
+
+  const lower=originalText.toLowerCase();
+  const matches=[];
+
+  reports.forEach((r,idx)=>{
+    const decision=r.decision||'UNCERTAIN';
+    const cls={TRUE:'hl-claim-true',FALSE:'hl-claim-false',UNCERTAIN:'hl-claim-unc'}[decision];
+    const icon={TRUE:'✓',FALSE:'✗',UNCERTAIN:'?'}[decision];
+    const conf=Math.round((r.final_confidence??r.confidence??0)*100);
+    const label=`${icon} ${decision} · ${conf}%`;
+
+    // Try several match strategies in order
+    const attempts=[
+      r.claim,                                                    // exact
+      r.claim.replace(/^(the|a|an)\s+/i,''),                     // strip leading article
+      r.claim.split(' ').slice(1).join(' '),                      // drop first word
+      r.claim.split(' ').slice(0,7).join(' '),                    // first 7 words
+      r.claim.replace(/^(the|a|an)\s+/i,'').split(' ').slice(0,6).join(' '), // strip article + 6 words
+    ];
+    let matched=false;
+    for(const attempt of attempts){
+      if(!attempt||attempt.length<8) continue;
+      const pos=lower.indexOf(attempt.toLowerCase());
+      if(pos!==-1){
+        matches.push({start:pos,end:pos+attempt.length,idx,cls,label});
+        matched=true;
+        break;
+      }
+    }
+    // Last resort: find any 5-word window from claim that exists in text
+    if(!matched){
+      const words=r.claim.split(' ');
+      for(let w=0;w<=words.length-5;w++){
+        const chunk=words.slice(w,w+5).join(' ');
+        const pos=lower.indexOf(chunk.toLowerCase());
+        if(pos!==-1){
+          matches.push({start:pos,end:pos+chunk.length,idx,cls,label});
+          break;
+        }
+      }
+    }
+  });
+
+  if(!matches.length) return null;
+
+  // Sort by position, remove overlaps
+  matches.sort((a,b)=>a.start-b.start);
+  const clean=[];
+  let lastEnd=0;
+  matches.forEach(m=>{if(m.start>=lastEnd){clean.push(m);lastEnd=m.end;}});
+
+  // Build final HTML
+  let html='',cursor=0;
+  clean.forEach(({start,end,idx,cls,label})=>{
+    html+=escHtml(originalText.slice(cursor,start));
+    html+=`<span class="hl-claim ${cls}" onclick="scrollToClaim(${idx})" title="${label}">${escHtml(originalText.slice(start,end))}</span>`;
+    cursor=end;
+  });
+  html+=escHtml(originalText.slice(cursor));
+  return html;
+}
+
+function scrollToClaim(idx){
+  const el=document.getElementById(`claim-card-${idx}`);
+  if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
+  // briefly pulse the card
+  el?.classList.add('pulse');
+  setTimeout(()=>el?.classList.remove('pulse'),800);
+}
+
 /* ── Pipeline animation ───────────────────────────────────── */
 let elapsedTimer,elapsedSec=0;
 const STEPS=['extract','evidence','synthesis','critic','correct'];
@@ -1035,6 +1150,7 @@ function renderResults(reports,elapsed){
 
     const card=document.createElement('div');
     card.className=`claim-card ${cardClass}`;
+    card.id=`claim-card-${i}`;
     card.innerHTML=`
       <div class="claim-top">
         <div class="claim-gauge">${gauge(conf,decision)}</div>
@@ -1059,6 +1175,20 @@ function renderResults(reports,elapsed){
     container.appendChild(card);
     setTimeout(()=>card.classList.add('visible'),i*120);
   });
+
+  // ── Claim highlighting ──────────────────────────────────────
+  const originalText = window._lastInputText || '';
+  let hlHTML = null;
+  try {
+    hlHTML = originalText ? buildHighlightedText(originalText, reports) : null;
+  } catch(e) { /* highlight errors are non-fatal */ }
+  const hlPanel = document.getElementById('highlight-panel');
+  if(hlHTML){
+    document.getElementById('highlight-text').innerHTML=hlHTML;
+    hlPanel.style.display='block';
+  } else {
+    hlPanel.style.display='none';
+  }
 
   document.getElementById('results-section').style.display='block';
   setTimeout(()=>document.getElementById('results-section').scrollIntoView({behavior:'smooth',block:'start'}),100);
@@ -1088,8 +1218,10 @@ async function startVerification(){
   STEPS.forEach(s=>document.getElementById(`step-${s}`).classList.remove('done','active','error'));
   document.getElementById('progress-fill').style.width='0';
   document.getElementById('progress-fill').style.background='';
+  document.getElementById('highlight-panel').style.display='none';
   document.getElementById('pipeline-section').scrollIntoView({behavior:'smooth',block:'start'});
 
+  window._lastInputText=document.getElementById('claim-input').value.trim();
   let taskId,startTime=Date.now();
   try{
     const res=await fetch(`${API}/verify`,{
@@ -1106,6 +1238,10 @@ async function startVerification(){
 
   document.getElementById('btn-text').textContent='Processing…';
   startElapsed();
+
+  // Cache hits return instantly — poll fast; normal Celery tasks poll every 3s
+  const isInstant = taskId.startsWith('instant::');
+  const pollInterval = isInstant ? 400 : 3000;
 
   const poll=setInterval(async()=>{
     try{
@@ -1153,7 +1289,7 @@ async function startVerification(){
         resetBtn();
       }
     } catch(e){console.warn('Poll error',e)}
-  },3000);
+  },pollInterval);
 }
 
 function resetBtn(){
