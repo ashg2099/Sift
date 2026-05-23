@@ -5,10 +5,17 @@ from celery import Celery
 import os
 
 # ── Celery App ────────────────────────────────────────
+REDIS_URL = os.environ["REDIS_URL"]
+
+# Upstash (rediss://) requires ssl_cert_reqs param for Celery
+BROKER_URL = REDIS_URL
+if REDIS_URL.startswith("rediss://") and "ssl_cert_reqs" not in REDIS_URL:
+    BROKER_URL = REDIS_URL + ("&" if "?" in REDIS_URL else "?") + "ssl_cert_reqs=CERT_NONE"
+
 celery_app = Celery(
     "sift",
-    broker=os.environ["REDIS_URL"],
-    backend=os.environ["REDIS_URL"]
+    broker=BROKER_URL,
+    backend=BROKER_URL
 )
 
 celery_app.conf.update(
