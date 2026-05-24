@@ -641,15 +641,15 @@ footer{
 
   <div class="stats-row">
     <div class="stat-card">
-      <div class="stat-num">4,210</div>
+      <div class="stat-num" id="stat-chunks">4,210</div>
       <div class="stat-label">Evidence chunks indexed from Guardian API + Wikipedia</div>
     </div>
     <div class="stat-card">
-      <div class="stat-num">83.3%</div>
+      <div class="stat-num" id="stat-accuracy">83.3%</div>
       <div class="stat-label">TRUE detection accuracy on 20-claim benchmark</div>
     </div>
     <div class="stat-card">
-      <div class="stat-num">11.2s</div>
+      <div class="stat-num" id="stat-latency">11.2s</div>
       <div class="stat-label">Average latency per claim on local CPU</div>
     </div>
   </div>
@@ -835,6 +835,15 @@ async function checkAPI(){
   }
 }
 checkAPI();
+
+fetch(`${API}/stats`)
+  .then(r => r.json())
+  .then(data => {
+    document.getElementById('stat-chunks').textContent = data.chunks.toLocaleString();
+    document.getElementById('stat-accuracy').textContent = data.accuracy + '%';
+    document.getElementById('stat-latency').textContent = data.latency + 's';
+  })
+  .catch(() => {});
 
 /* ── Char counter ─────────────────────────────────────────── */
 document.getElementById('claim-input').addEventListener('input',function(){

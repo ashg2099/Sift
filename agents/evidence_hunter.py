@@ -43,7 +43,7 @@ def _build_embedder():
         # Try HF Inference API first (lightweight — no torch needed)
         from langchain_huggingface import HuggingFaceEndpointEmbeddings
         embedder = HuggingFaceEndpointEmbeddings(
-            model="https://api-inference.huggingface.co/models/BAAI/bge-m3",
+            model="sentence-transformers/all-MiniLM-L6-v2",
             huggingfacehub_api_token=hf_token,
         )
         print("[Sift] Using HuggingFace Inference API for embeddings")

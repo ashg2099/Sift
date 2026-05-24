@@ -46,3 +46,4 @@ requests
 
 # Search
 tavily-python
+wikipedia

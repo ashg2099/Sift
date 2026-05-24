@@ -4,17 +4,19 @@ load_dotenv()
 import os
 import time
 import requests
+
 import wikipedia
+wikipedia.set_user_agent("Sift/1.0 (fact-checking research tool)")
+
 from langchain_core.documents import Document
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from langchain_postgres import PGVector
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # =================== Vector store setup ===================
-embedder = HuggingFaceEmbeddings(
-    model_name="BAAI/bge-m3",
-    model_kwargs={"device": "cpu"},
-    encode_kwargs={"normalize_embeddings": True}
+embedder = HuggingFaceEndpointEmbeddings(
+    model="sentence-transformers/all-MiniLM-L6-v2",
+    huggingfacehub_api_token=os.environ.get("HF_TOKEN", ""),
 )
 
 vector_store = PGVector(
@@ -233,15 +235,21 @@ def ingest_all():
         docs = fetch_wikipedia(topic)
         print(f"     {len(docs)} chunks")
         all_docs.extend(docs)
+        time.sleep(1.5)
 
     print(f"\n✅ Total chunks to embed: {len(all_docs)}")
     print("⏳ Embedding and storing in pgvector (this takes a few minutes)...")
+    
+    print("🗑  Clearing existing vectors...")
+    vector_store.delete_collection()
+    vector_store.create_collection()
 
-    batch_size = 50
+    batch_size = 10
     for i in range(0, len(all_docs), batch_size):
         batch = all_docs[i:i + batch_size]
         vector_store.add_documents(batch)
         print(f"  Stored batch {i // batch_size + 1}/{(len(all_docs) // batch_size) + 1}")
+        time.sleep(0.5)
 
     print(f"\n🎉 Done! {len(all_docs)} chunks ingested into pgvector.")
 

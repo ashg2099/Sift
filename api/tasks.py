@@ -3,6 +3,12 @@ load_dotenv()
 
 from celery import Celery
 import os
+import time
+from graph.pipeline import run_sift
+import redis
+
+def _get_redis():
+    return redis.from_url(REDIS_URL)
 
 # ── Celery App ────────────────────────────────────────
 REDIS_URL = os.environ["REDIS_URL"]
@@ -42,28 +48,35 @@ def _rate_limit_wait(exc) -> int:
 @celery_app.task(bind=True, max_retries=3)
 def verify_text_task(self, text: str):
     try:
-        from graph.pipeline import run_sift
+        import time
+        start = time.time()
         reports = run_sift(text)
-        return {
-            "status": "complete",
-            "reports": reports
-        }
+        elapsed = round(time.time() - start, 1)
+
+        # Update rolling average in Redis
+        try:
+            prev = _get_redis().get("sift:stat:avg_latency")
+            prev = float(prev) if prev else elapsed
+            new_avg = round((prev * 0.8) + (elapsed * 0.2), 1)
+            _get_redis().set("sift:stat:avg_latency", new_avg)
+        except:
+            pass
+
+        return {"status": "complete", "reports": reports}
+
     except Exception as exc:
         msg = str(exc)
         is_429 = "429" in msg or "rate_limit_exceeded" in msg
-        is_tpd = "tokens per day" in msg or "TPD" in msg   # daily limit — won't recover soon
-        is_tpm = "tokens per minute" in msg or "TPM" in msg # burst limit — recovers in seconds
+        is_tpd = "tokens per day" in msg or "TPD" in msg
+        is_tpm = "tokens per minute" in msg or "TPM" in msg
 
         if is_429 and is_tpd:
-            # Daily limit hit — fail immediately, surface error to UI right away
             print(f"[TASKS] Daily token limit hit — failing immediately (no retry)")
-            raise exc   # do NOT retry
+            raise exc
 
         if is_429 and (is_tpm or not is_tpd):
-            # Burst/minute limit — short wait then retry
             countdown = _rate_limit_wait(exc)
             print(f"[TASKS] Burst rate limit — retrying in {countdown}s")
             raise self.retry(exc=exc, countdown=countdown)
 
-        # All other errors — quick retry
         raise self.retry(exc=exc, countdown=10)
