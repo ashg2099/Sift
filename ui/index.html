@@ -1214,8 +1214,12 @@ function toggleReasoning(id,btn){
 
 /* ── Main verify flow ─────────────────────────────────────── */
 async function startVerification(){
-  const text=document.getElementById('claim-input').value.trim();
-  if(!text){document.getElementById('claim-input').focus();return}
+  const text = document.getElementById('claim-input').value.trim();
+  if(!text){ document.getElementById('claim-input').focus(); return; }
+  if(text.length < 20){
+    alert('Please enter a longer text with verifiable claims.');
+    return;
+  }
 
   const btn=document.getElementById('verify-btn');
   btn.disabled=true;

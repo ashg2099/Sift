@@ -84,6 +84,8 @@ def extract_node(state: SiftState) -> SiftState:
 
 def evidence_node(state: SiftState) -> SiftState:
     print("\n[NODE] Evidence Hunter running...")
+    if not state["claims"]:  # no claims — skip
+        return {**state, "evidence": [], "evidence_found": False, "retrieval_attempts": 0}
     idx = state["current_claim_index"]
     claim_text = state["claims"][idx]["text"]
     result = hunt_evidence(claim_text)
@@ -160,14 +162,16 @@ def check_evidence(state: SiftState) -> str:
         return "no_evidence"   # skip synthesis, go straight to critic
 
 def check_more_claims(state: SiftState) -> str:
-    """After critic — are there more claims to process?"""
     total_claims = len(state["claims"])
     next_index = state["current_claim_index"]
 
+    if total_claims == 0:
+        return "done"  # no claims extracted at all
+
     if next_index < total_claims:
-        return "more_claims"   # loop back to evidence hunter
+        return "more_claims"
     else:
-        return "done"          # all claims processed, end
+        return "done"
 
 # ── Build the Graph ───────────────────────────────────
 def build_pipeline():
@@ -253,6 +257,19 @@ def run_sift(text: str) -> List[dict]:
                 pass
 
     reports = final_state["final_reports"]
+    
+    if not reports:
+        return [{
+            "claim": "No verifiable claims found",
+            "decision": "UNCERTAIN",
+            "final_confidence": 0.0,
+            "revised_reasoning": "The input text does not appear to contain any verifiable factual claims.",
+            "issues_found": [],
+            "supporting_evidence": [],
+            "contradicting_evidence": [],
+            "retrieval_attempts": 0,
+            "correction": None,
+        }]
 
     # ── Cache store ───────────────────────────────────────
     try:
