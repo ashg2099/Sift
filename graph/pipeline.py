@@ -106,6 +106,18 @@ def synthesis_node(state: SiftState) -> SiftState:
 
 def critic_node(state: SiftState) -> SiftState:
     print("\n[NODE] Critic Agent running...")
+
+    idx = state["current_claim_index"]
+
+    # Guard: if no claims or verdict is empty
+    if not state["claims"] or idx >= len(state["claims"]) or not state["verdict"]:
+        return {
+            **state,
+            "critique": {},
+            "final_reports": state["final_reports"],
+            "current_claim_index": idx + 1
+        }
+
     verdict = Verdict(**state["verdict"])
     evidence = [Evidence(**e) for e in state["evidence"]]
     critique = critique_verdict(verdict, evidence)
@@ -148,7 +160,7 @@ def critic_node(state: SiftState) -> SiftState:
         **state,
         "critique": critique.dict(),
         "final_reports": updated_reports,
-        "current_claim_index": idx + 1   # move to next claim
+        "current_claim_index": idx + 1
     }
 
 # ── Conditional Edges ─────────────────────────────────
