@@ -1,5 +1,6 @@
 # 🔍 Sift — Multimodal Claim Verification Engine
 
+> **Source Inspection & Fact-checking Tool**
 > A production-grade, multi-agent fact-checking pipeline that extracts claims from any text, retrieves grounded evidence, and delivers auditable verdicts with cited sources.
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
@@ -38,8 +39,8 @@ Input Text
          │ List[Claim]
          ▼
 ┌─────────────────┐     ┌──────────────────────────────────┐
-│ Evidence Hunter │────▶│  Tavily (web) + Guardian + NewsAPI│
-│   (HyDE RAG)    │     │  + pgvector (bge-m3 embeddings)   │
+│ Evidence Hunter │────▶│ Tavily (web) + Guardian + NewsAPI│
+│   (HyDE RAG)    │     │ + pgvector (MiniLM embeddings)   │
 └────────┬────────┘     └──────────────────────────────────┘
          │ Evidence[]
          ▼
@@ -76,7 +77,7 @@ Input Text
 | Layer | Technology |
 |---|---|
 | LLM | LLaMA 3.3 70B via Groq API |
-| Embeddings | `BAAI/bge-m3` via HuggingFace Inference API |
+| Embeddings | `sentence-transformers/all-MiniLM-L6-v2` via HuggingFace Inference API |
 | Orchestration | LangGraph state machine |
 | RAG | HyDE + pgvector hybrid search |
 | Vector DB | PostgreSQL + pgvector extension |
@@ -110,7 +111,8 @@ cp .env.example .env
 # Open .env and fill in your keys
 
 # 3. Start everything
-docker compose up
+docker compose build --no-cache
+docker compose up -d
 ```
 
 Open **http://localhost:8000** and start verifying claims.
@@ -124,6 +126,32 @@ The pipeline works without this step (it falls back to live web search). But ing
 ```bash
 docker compose exec worker python -m ingestion.loaders
 ```
+
+This pulls articles from Guardian API + Wikipedia and stores them in pgvector. Takes 5–10 minutes depending on your connection. Once done, the evidence chunks stat on the UI will update live.
+
+```bash
+# Stop all containers
+docker compose down
+
+# Restart cleanly
+docker compose up -d
+
+# View logs
+docker compose logs -f worker
+docker compose logs -f api
+```
+
+### Troubleshooting
+
+Port conflict on 5432 — Postgres runs on port 5433 externally to avoid conflicts with local Postgres installations.
+Worker not picking up code changes — Always rebuild after code changes:
+
+```bash
+docker compose build --no-cache api worker && docker compose up -d
+```
+Ingestion timing out — HuggingFace free tier can be slow under load. The ingestion script uses small batches and retries automatically. If it fails, just re-run — the collection is cleared at the start of each run.
+
+API showing offline — Wait 10–15 seconds after docker compose up for all health checks to pass.
 
 ---
 
